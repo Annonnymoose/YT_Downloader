@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YT Downloader</title>
+  <style>
+    /* ═══════════════════════════════════════════════════════════
+       DESIGN TOKENS — Apple HIG Semantic Color System
+       ═══════════════════════════════════════════════════════════ */
+    :root {
+      --bg-page:           #F5F5F7;
+      --bg-card:           rgba(255, 255, 255, 0.75);
+      --bg-input:          rgba(255, 255, 255, 0.80);
+      --bg-input-focus:    rgba(255, 255, 255, 1);
+      --bg-badge:          rgba(0, 0, 0, 0.045);
+      --bg-disclosure:     rgba(0, 0, 0, 0.03);
+      --bg-log:            rgba(0, 0, 0, 0.04);
+
+      --border-focus:      #007AFF;
+
+      --label-primary:     #000000;
+      --label-secondary:   rgba(0, 0, 0, 0.55);
+      --label-tertiary:    rgba(0, 0, 0, 0.36);
+      --label-placeholder: rgba(0, 0, 0, 0.28);
+
+      --accent-blue:       #007AFF;
+      --accent-blue-hover: #0066D6;
+      --accent-blue-press: #0055B3;
+      --accent-green:      #34C759;
+      --accent-red:        #FF3B30;
+      --accent-orange:     #FF9500;
+      --toggle-off:        #D1D1D6;
+
+      --shadow-card:   0 2px 8px rgba(0,0,0,0.04), 0 12px 40px rgba(0,0,0,0.08), 0 1px 0 rgba(255,255,255,0.9) inset;
+      --shadow-button: 0 1px 3px rgba(0,122,255,0.25), 0 4px 16px rgba(0,122,255,0.18);
+      --shadow-toast:  0 4px 20px rgba(0,0,0,0.14), 0 1px 4px rgba(0,0,0,0.08);
+      --shadow-input:  0 0 0 3.5px rgba(0, 122, 255, 0.22);
+
+      --spring:        cubic-bezier(0.25, 1, 0.5, 1);
+      --spring-fast:   cubic-bezier(0.34, 1.56, 0.64, 1);
+      --dur-micro:     0.5s;
+      --dur-standard:  0.5s;
+      --dur-entrance:  0.5s;
+
+      --r-card:    16px;
+      --r-input:   12px;
+      --r-button:  13px;
+      --r-badge:   8px;
+      --r-toast:   14px;
+      --r-toggle:  100px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-page:           #000000;
+        --bg-card:           rgba(28, 28, 30, 0.75);
+        --bg-input:          rgba(44, 44, 46, 0.80);
+        --bg-input-focus:    rgba(58, 58, 60, 0.95);
+        --bg-badge:          rgba(255, 255, 255, 0.06);
+        --bg-disclosure:     rgba(255, 255, 255, 0.04);
+        --bg-log:            rgba(0, 0, 0, 0.30);
+
+        --label-primary:     rgba(255, 255, 255, 0.95);
+        --label-secondary:   rgba(255, 255, 255, 0.55);
+        --label-tertiary:    rgba(255, 255, 255, 0.32);
+        --label-placeholder: rgba(255, 255, 255, 0.24);
+
+        --accent-blue:       #007AFF;
+        --accent-blue-hover: #409CFF;
+        --accent-blue-press: #0070E0;
+        --accent-green:      #34C759;
+        --accent-red:        #FF3B30;
+        --accent-orange:     #FF9F0A;
+        --toggle-off:        #3A3A3C;
+
+        --shadow-card:   0 2px 8px rgba(0,0,0,0.28), 0 16px 48px rgba(0,0,0,0.42), 0 1px 0 rgba(255,255,255,0.05) inset;
+        --shadow-button: 0 1px 3px rgba(0,0,0,0.40), 0 4px 16px rgba(10,132,255,0.28);
+        --shadow-toast:  0 4px 24px rgba(0,0,0,0.50), 0 1px 4px rgba(0,0,0,0.30);
+        --shadow-input:  0 0 0 3.5px rgba(0, 122, 255, 0.30);
+      }
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
+                   "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 15px;
+      line-height: 1.5;
+      color: var(--label-primary);
+      background-color: var(--bg-page);
+      min-height: 100svh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px 48px;
+      overflow-x: hidden;
+      background-image:
+        radial-gradient(ellipse 60% 50% at 18% 18%, rgba(0, 122, 255, 0.07) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 60% at 82% 82%, rgba(52, 199, 89, 0.05) 0%, transparent 70%);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      body {
+        background-image:
+          radial-gradient(ellipse 60% 50% at 18% 18%, rgba(10, 132, 255, 0.11) 0%, transparent 70%),
+          radial-gradient(ellipse 50% 60% at 82% 82%, rgba(48, 209, 88, 0.07) 0%, transparent 70%);
+      }
+    }
+
+    .page-center { width: 100%; max-width: 560px; }
+
+    .card {
+      background: var(--bg-card);
+      backdrop-filter: blur(30px) saturate(210%);
+      -webkit-backdrop-filter: blur(30px) saturate(210%);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--r-card);
+      box-shadow: var(--shadow-card);
+      padding: 32px 28px;
+      animation: card-entrance var(--dur-entrance) var(--spring) both;
+    }
+
+    @keyframes card-entrance {
+      from { opacity: 0; transform: translateY(18px) scale(0.98); }
+      to   { opacity: 1; transform: translateY(0)    scale(1);    }
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      margin-bottom: 28px;
+    }
+
+    .app-icon {
+      width: 44px; height: 44px;
+      border-radius: 11px;
+      background: linear-gradient(145deg, #FF4040 0%, #C40000 100%);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(196, 0, 0, 0.30), 0 1px 0 rgba(255,255,255,0.18) inset;
+    }
+
+    .app-name {
+      font-size: 19px; font-weight: 700;
+      letter-spacing: -0.4px; line-height: 1.2;
+    }
+
+    .app-subtitle {
+      font-size: 12.5px; color: var(--label-tertiary);
+      margin-top: 1px; letter-spacing: 0.05px;
+    }
+
+    .section + .section { margin-top: 20px; }
+
+    .section-label {
+      font-size: 11.5px;
+      font-weight: 600;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--label-secondary);
+      margin-bottom: 8px;
+      padding-left: 2px;
+    }
+
+    .url-textarea {
+      width: 100%;
+      min-height: 118px;
+      resize: vertical;
+      padding: 12px 13px;
+      font-family: inherit;
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--label-primary);
+      background: var(--bg-input);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--r-input);
+      outline: none;
+      transition: all 0.5s var(--spring);
+      -webkit-appearance: none;
+    }
+
+    .url-textarea::placeholder { color: var(--label-placeholder); }
+
+    .url-textarea:focus {
+      background: var(--bg-input-focus);
+      border-color: var(--border-focus);
+      box-shadow: var(--shadow-input);
+      transform: scale(1.01);
+    }
+
+    .format-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .format-pill { position: relative; cursor: pointer; }
+
+    .format-pill input[type="radio"] {
+      position: absolute; opacity: 0; width: 0; height: 0;
+    }
+
+    .format-pill-body {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      padding: 12px 14px;
+      border: 1.5px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--r-input);
+      background: var(--bg-input);
+      transition: all 0.5s var(--spring);
+      -webkit-user-select: none; user-select: none;
+    }
+
+    .format-pill:hover .format-pill-body {
+      border-color: rgba(0,122,255,0.30);
+      transform: translateY(-1px);
+    }
+    .format-pill:active .format-pill-body { transform: scale(0.96); }
+
+    .format-pill input:checked + .format-pill-body {
+      border-color: var(--accent-blue);
+      background: rgba(0, 122, 255, 0.07);
+      box-shadow: 0 0 0 3.5px rgba(0, 122, 255, 0.12);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .format-pill input:checked + .format-pill-body {
+        background: rgba(10, 132, 255, 0.12);
+        box-shadow: 0 0 0 3.5px rgba(10, 132, 255, 0.18);
+      }
+    }
+
+    .format-icon {
+      width: 34px; height: 34px;
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      background: var(--bg-badge);
+      transition: all 0.5s var(--spring);
+    }
+
+    .format-pill input:checked + .format-pill-body .format-icon {
+      background: var(--accent-blue);
+    }
+
+    .format-icon svg {
+      fill: var(--label-secondary);
+      transition: fill 0.5s var(--spring);
+    }
+    .format-pill input:checked + .format-pill-body .format-icon svg { fill: white; }
+
+    .format-name { font-size: 14px; font-weight: 600; letter-spacing: -0.1px; }
+    .format-desc { font-size: 11.5px; color: var(--label-tertiary); margin-top: 1px; }
+
+    .toggle-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 13px 14px;
+      background: var(--bg-input);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--r-input);
+      cursor: pointer;
+      -webkit-user-select: none; user-select: none;
+      transition: all 0.5s var(--spring);
+    }
+    .toggle-row:active { background: var(--bg-badge); }
+
+    .toggle-text { flex: 1; padding-right: 16px; }
+    .toggle-title { font-size: 14px; font-weight: 500; }
+    .toggle-subtitle { font-size: 12px; color: var(--label-tertiary); margin-top: 2px; }
+
+    .ios-switch {
+      position: relative; display: inline-flex;
+      flex-shrink: 0; width: 51px; height: 31px;
+    }
+    .ios-switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+
+    .ios-switch-track {
+      width: 51px; height: 31px;
+      border-radius: var(--r-toggle);
+      background: var(--toggle-off);
+      transition: all 0.5s var(--spring);
+      position: relative; cursor: pointer;
+    }
+
+    .ios-switch-thumb {
+      position: absolute;
+      top: 2px; left: 2px;
+      width: 27px; height: 27px;
+      border-radius: 50%;
+      background: #FFFFFF;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.22), 0 2px 8px rgba(0,0,0,0.14);
+      transition: all 0.5s var(--spring);
+    }
+
+    .toggle-row:active .ios-switch-thumb { width: 31px; }
+    .ios-switch input:checked ~ .ios-switch-track { background: var(--accent-blue); }
+    .ios-switch input:checked ~ .ios-switch-track .ios-switch-thumb {
+      transform: translateX(20px);
+    }
+
+    .btn-primary {
+      width: 100%; height: 50px;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      margin-top: 22px;
+      border: none;
+      border-radius: var(--r-button);
+      background: var(--accent-blue);
+      color: #FFFFFF;
+      font-family: inherit; font-size: 16px; font-weight: 600; letter-spacing: -0.2px;
+      cursor: pointer;
+      box-shadow: var(--shadow-button);
+      transition: all 0.5s var(--spring);
+      -webkit-appearance: none;
+      -webkit-user-select: none; user-select: none;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: var(--accent-blue-hover);
+      box-shadow: 0 2px 8px rgba(0,102,214,.30), 0 6px 24px rgba(0,102,214,.22);
+    }
+
+    .btn-primary:active:not(:disabled) {
+      background: var(--accent-blue-press);
+      transform: scale(0.96);
+      box-shadow: 0 1px 2px rgba(0,85,179,.20);
+    }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .btn-spinner {
+      width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,0.35);
+      border-top-color: #FFFFFF;
+      border-radius: 50%;
+      animation: spin 700ms linear infinite;
+      display: none; flex-shrink: 0;
+    }
+    .btn-primary.loading { background: rgba(0, 122, 255, 0.7); }
+    .btn-primary.loading .btn-spinner { display: block; }
+    .btn-primary.loading .btn-icon    { display: none; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .separator { height: 1px; background: rgba(255, 255, 255, 0.1); margin: 24px -28px; }
+
+    .status-area { display: none; }
+    .status-area.visible {
+      display: block;
+      animation: fade-in 0.5s var(--spring) both;
+    }
+
+    @keyframes fade-in {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0);   }
+    }
+
+    .status-line { display: flex; align-items: center; gap: 9px; margin-bottom: 14px; }
+
+    .status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%; background: var(--accent-blue);
+      flex-shrink: 0; position: relative;
+    }
+    .status-dot::after {
+      content: ''; position: absolute; inset: -4px; border-radius: 50%;
+      background: var(--accent-blue); opacity: 0;
+      animation: dot-pulse 1.6s ease-out infinite;
+    }
+    .status-dot.success            { background: var(--accent-green); }
+    .status-dot.success::after     { background: var(--accent-green); }
+    .status-dot.error              { background: var(--accent-red); }
+    .status-dot.error::after       { animation: none; }
+
+    @keyframes dot-pulse {
+      0%   { transform: scale(1);   opacity: 0.5; }
+      100% { transform: scale(2.8); opacity: 0;   }
+    }
+
+    .status-message { font-size: 14px; font-weight: 500; }
+
+    .progress-wrap { margin-bottom: 14px; }
+
+    .progress-meta {
+      display: flex; justify-content: space-between;
+      font-size: 12px; color: var(--label-secondary); margin-bottom: 6px;
+    }
+    .progress-filename {
+      max-width: 72%; white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis; font-weight: 500;
+    }
+
+    .progress-track {
+      height: 5px; background: var(--bg-badge);
+      border-radius: 100px; overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%; width: 0%;
+      background: linear-gradient(90deg, var(--accent-blue), #5AC8FF);
+      border-radius: 100px;
+      transition: width 0.5s var(--spring);
+    }
+    .progress-sub {
+      display: flex; justify-content: space-between;
+      font-size: 11.5px; color: var(--label-tertiary); margin-top: 5px;
+    }
+
+    .disclosure { margin-top: 12px; }
+
+    .disclosure-trigger {
+      display: flex; align-items: center; gap: 6px;
+      padding: 8px 10px;
+      font-size: 12px; font-weight: 500;
+      color: var(--label-secondary);
+      background: var(--bg-disclosure);
+      border-radius: var(--r-badge);
+      cursor: pointer; border: none;
+      font-family: inherit; width: 100%; text-align: left;
+      transition: all 0.5s var(--spring);
+      -webkit-user-select: none; user-select: none;
+    }
+    .disclosure-trigger:hover { background: var(--bg-badge); }
+
+    .disclosure-chevron {
+      display: inline-flex;
+      transition: transform 0.5s var(--spring);
+      flex-shrink: 0;
+    }
+    .disclosure.open .disclosure-chevron { transform: rotate(90deg); }
+    .disclosure.open .disclosure-trigger { border-radius: var(--r-badge) var(--r-badge) 0 0; }
+
+    .disclosure-body {
+      display: none; padding: 10px;
+      background: var(--bg-log);
+      border-radius: 0 0 var(--r-badge) var(--r-badge);
+    }
+    .disclosure.open .disclosure-body { display: block; }
+
+    .log-list {
+      list-style: none;
+      font-family: "SF Mono", "Menlo", "Monaco", "Courier New", monospace;
+      font-size: 11.5px; line-height: 1.65;
+      max-height: 140px; overflow-y: auto;
+      color: var(--label-secondary);
+    }
+    .log-list::-webkit-scrollbar { width: 4px; }
+    .log-list::-webkit-scrollbar-track { background: transparent; }
+    .log-list::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 4px; }
+
+    .log-entry         { padding: 1px 0; }
+    .log-entry.info    { color: var(--label-secondary); }
+    .log-entry.success { color: var(--accent-green); }
+    .log-entry.error   { color: var(--accent-red); }
+
+    .open-folder-row {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: 14px;
+      opacity: 0; pointer-events: none;
+      transition: all 0.5s var(--spring);
+    }
+    .open-folder-row.visible { opacity: 1; pointer-events: auto; }
+
+    .open-folder-label { font-size: 13px; font-weight: 500; color: var(--accent-green); }
+
+    .open-folder-btn {
+      font-size: 13px; font-weight: 500;
+      color: var(--accent-blue);
+      background: none; border: none; cursor: pointer;
+      font-family: inherit; padding: 0;
+    }
+    .open-folder-btn:hover { text-decoration: underline; }
+
+    .toast-container {
+      position: fixed; top: 20px; left: 50%;
+      transform: translateX(-50%);
+      display: flex; flex-direction: column; align-items: center; gap: 10px;
+      z-index: 9999; pointer-events: none;
+      width: min(480px, calc(100vw - 32px));
+    }
+
+    .toast {
+      display: flex; align-items: flex-start; gap: 11px;
+      padding: 13px 16px;
+      border-radius: var(--r-toast);
+      background: var(--bg-card);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: var(--shadow-toast);
+      width: 100%; pointer-events: auto;
+      animation: toast-enter 0.5s var(--spring) both;
+    }
+    .toast.toast-leaving { animation: toast-leave 0.5s var(--spring) both; }
+
+    @keyframes toast-enter {
+      from { opacity: 0; transform: translateY(-16px) scale(0.95); }
+      to   { opacity: 1; transform: translateY(0)     scale(1);    }
+    }
+    @keyframes toast-leave {
+      from { opacity: 1; transform: translateY(0)     scale(1);    }
+      to   { opacity: 0; transform: translateY(-12px) scale(0.96); }
+    }
+
+    .toast-icon {
+      width: 20px; height: 20px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; margin-top: 1px;
+    }
+    .toast-icon.success { background: var(--accent-green); }
+    .toast-icon.error   { background: var(--accent-red); }
+    .toast-icon.warning { background: var(--accent-orange); }
+
+    .toast-title { font-size: 13.5px; font-weight: 600; letter-spacing: -0.1px; }
+    .toast-body  { font-size: 12.5px; color: var(--label-secondary); margin-top: 2px; line-height: 1.45; }
+
+    @media (max-width: 480px) {
+      .card      { padding: 24px 20px; }
+      .separator { margin: 20px -20px; }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- SF Toast Container -->
+  <div class="toast-container" id="toast-container" role="status" aria-live="polite"></div>
+
+  <!-- Main Glass Card -->
+  <div class="page-center">
+    <div class="card" role="main">
+
+      <!-- ── Header ───────────────────────────────────────────── -->
+      <div class="header">
+        <div class="app-icon" aria-hidden="true">
+          <svg width="24" height="24" viewBox="0 0 24 24">
+            <path d="M8 5.5V18.5L19 12L8 5.5Z" fill="white"/>
+          </svg>
+        </div>
+        <div>
+          <div class="app-name">YT Downloader</div>
+          <div class="app-subtitle">YouTube &amp; YouTube Music &middot; local &amp; private</div>
+        </div>
+      </div>
+
+      <!-- ── URL Input ─────────────────────────────────────────── -->
+      <div class="section">
+        <div class="section-label">Links</div>
+        <textarea
+          id="urls"
+          class="url-textarea"
+          rows="5"
+          placeholder="Paste YouTube or YouTube Music URLs, one per line&hellip;"
+          autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+          aria-label="YouTube URLs, one per line"
+        ></textarea>
+      </div>
+
+      <!-- ── Format Selector ───────────────────────────────────── -->
+      <div class="section">
+        <div class="section-label">Format</div>
+        <div class="format-group" role="radiogroup" aria-label="Output format">
+
+          <label class="format-pill" for="fmt-mp3">
+            <input type="radio" name="format" id="fmt-mp3" value="mp3" checked />
+            <div class="format-pill-body">
+              <div class="format-icon" aria-hidden="true">
+                <svg width="17" height="17" viewBox="0 0 24 24">
+                  <path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/>
+                </svg>
+              </div>
+              <div>
+                <div class="format-name">MP3</div>
+                <div class="format-desc">Audio &middot; 320 kbps</div>
+              </div>
+            </div>
+          </label>
+
+          <label class="format-pill" for="fmt-mp4">
+            <input type="radio" name="format" id="fmt-mp4" value="mp4" />
+            <div class="format-pill-body">
+              <div class="format-icon" aria-hidden="true">
+                <svg width="17" height="17" viewBox="0 0 24 24">
+                  <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/>
+                </svg>
+              </div>
+              <div>
+                <div class="format-name">MP4</div>
+                <div class="format-desc">Video + Audio</div>
+              </div>
+            </div>
+          </label>
+
+        </div>
+      </div>
+
+      <!-- ── Options — iOS Toggle ──────────────────────────────── -->
+      <div class="section">
+        <div class="section-label">Options</div>
+        <label class="toggle-row" for="meta-switch" aria-label="Embed metadata and thumbnails">
+          <div class="toggle-text">
+            <div class="toggle-title">Embed Metadata &amp; Thumbnails</div>
+            <div class="toggle-subtitle">Tags album, artist, artwork &middot; requires FFmpeg</div>
+          </div>
+          <div class="ios-switch">
+            <input type="checkbox" id="meta-switch" role="switch" aria-checked="false" />
+            <div class="ios-switch-track" aria-hidden="true">
+              <div class="ios-switch-thumb"></div>
+            </div>
+          </div>
+        </label>
+      </div>
+
+      <!-- ── Download Button ───────────────────────────────────── -->
+      <button
+        class="btn-primary"
+        id="btn-download"
+        type="button"
+        onclick="startDownload()"
+        aria-label="Start download"
+      >
+        <div class="btn-spinner" aria-hidden="true"></div>
+        <svg class="btn-icon" width="17" height="17" viewBox="0 0 24 24"
+             fill="none" stroke="white" stroke-width="2.2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        <span id="btn-label">Download</span>
+      </button>
+
+      <!-- ── Status / Progress Area ────────────────────────────── -->
+      <div class="separator" id="status-separator" style="display:none"></div>
+
+      <div class="status-area" id="status-area" aria-live="polite">
+
+        <div class="status-line">
+          <span class="status-dot" id="status-dot" aria-hidden="true"></span>
+          <span class="status-message" id="status-msg">Preparing&hellip;</span>
+        </div>
+
+        <div class="progress-wrap" id="progress-wrap" style="display:none">
+          <div class="progress-meta">
+            <span class="progress-filename" id="progress-filename">—</span>
+            <span id="progress-pct">0%</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" id="progress-fill"></div>
+          </div>
+          <div class="progress-sub">
+            <span id="progress-speed">—</span>
+            <span id="progress-eta">ETA —</span>
+          </div>
+        </div>
+
+        <div class="disclosure" id="disclosure">
+          <button
+            class="disclosure-trigger"
+            id="disclosure-trigger"
+            onclick="toggleDisclosure()"
+            aria-expanded="false"
+            aria-controls="disclosure-body"
+            type="button"
+          >
+            <span class="disclosure-chevron" aria-hidden="true">
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                <path d="M3.5 2L6.5 5L3.5 8" stroke="currentColor" stroke-width="1.5"
+                      stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+            Show Console Logs
+          </button>
+          <div class="disclosure-body" id="disclosure-body" role="log">
+            <ul class="log-list" id="log-list" aria-label="Download log"></ul>
+          </div>
+        </div>
+
+        <div class="open-folder-row" id="open-folder-row">
+          <span class="open-folder-label">&#10003; All downloads complete</span>
+          <button class="open-folder-btn" onclick="openFolder()" type="button">
+            Open Folder &rarr;
+          </button>
+        </div>
+
+      </div><!-- /status-area -->
+    </div><!-- /card -->
+  </div><!-- /page-center -->
+
+  <script>
+    document.getElementById('meta-switch').addEventListener('change', function () {
+      this.setAttribute('aria-checked', String(this.checked));
+    });
+
+    function generateToken() {
+      if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        return crypto.randomUUID();
+      }
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+        const r = (Math.random() * 16) | 0;
+        return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+      });
+    }
+
+    function toggleDisclosure() {
+      const disc    = document.getElementById('disclosure');
+      const trigger = document.getElementById('disclosure-trigger');
+      const isOpen  = disc.classList.toggle('open');
+      trigger.setAttribute('aria-expanded', String(isOpen));
+    }
+
+    function showStatusArea() {
+      document.getElementById('status-separator').style.display = '';
+      document.getElementById('status-area').classList.add('visible');
+    }
+
+    function setStatus(message, state = 'running') {
+      document.getElementById('status-msg').textContent = message;
+      const dot = document.getElementById('status-dot');
+      dot.className = 'status-dot' +
+        (state === 'success' ? ' success' : state === 'error' ? ' error' : '');
+    }
+
+    function setProgress(pct, filename, speed, eta) {
+      document.getElementById('progress-wrap').style.display    = 'block';
+      document.getElementById('progress-fill').style.width      = pct + '%';
+      document.getElementById('progress-pct').textContent       = pct + '%';
+      document.getElementById('progress-filename').textContent  = filename || '—';
+      document.getElementById('progress-speed').textContent     = speed   || '—';
+      document.getElementById('progress-eta').textContent       = eta ? `ETA ${eta}` : 'ETA —';
+    }
+
+    function appendLog(text, type = 'info') {
+      const list = document.getElementById('log-list');
+      const li   = document.createElement('li');
+      li.className   = `log-entry ${type}`;
+      li.textContent = text;
+      list.appendChild(li);
+      list.scrollTop = list.scrollHeight;
+    }
+
+    function clearLog() { document.getElementById('log-list').innerHTML = ''; }
+
+    function setLoading(on) {
+      const btn   = document.getElementById('btn-download');
+      const label = document.getElementById('btn-label');
+      btn.disabled = on;
+      btn.classList.toggle('loading', on);
+      label.textContent = on ? 'Downloading\u2026' : 'Download';
+      ['urls', 'fmt-mp3', 'fmt-mp4', 'meta-switch'].forEach(id => {
+        document.getElementById(id).disabled = on;
+      });
+    }
+
+    function showOpenFolder(show) {
+      document.getElementById('open-folder-row').classList.toggle('visible', show);
+    }
+
+    const TOAST_ICONS = {
+      success: `<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2.5 6L5 8.5L9.5 4" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+      error:   `<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 3L9 9M9 3L3 9" stroke="white" stroke-width="1.6" stroke-linecap="round"/></svg>`,
+      warning: `<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><line x1="6" y1="4" x2="6" y2="7" stroke="white" stroke-width="1.6" stroke-linecap="round"/><circle cx="6" cy="9" r="0.8" fill="white"/></svg>`,
+    };
+
+    function esc(s) {
+      return String(s)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function showToast(title, body = '', type = 'success', ms = 4000) {
+      const el = document.createElement('div');
+      el.className = 'toast';
+      el.setAttribute('role', 'alert');
+      el.innerHTML =
+        `<div class="toast-icon ${type}" aria-hidden="true">${TOAST_ICONS[type] ?? ''}</div>
+         <div>
+           <div class="toast-title">${esc(title)}</div>
+           ${body ? `<div class="toast-body">${esc(body)}</div>` : ''}
+         </div>`;
+      document.getElementById('toast-container').appendChild(el);
+      const t = setTimeout(() => dismissToast(el), ms);
+      el.addEventListener('click', () => { clearTimeout(t); dismissToast(el); });
+    }
+
+    function dismissToast(el) {
+      if (!el.parentNode) return;
+      el.classList.add('toast-leaving');
+      el.addEventListener('animationend', () => el.remove(), { once: true });
+    }
+
+    function listenSSE(token) {
+      let es = null;
+      const promise = new Promise(resolve => {
+        es = new EventSource(`/progress/${token}`);
+        let errCount = 0;
+
+        es.onmessage = e => {
+          const msg = JSON.parse(e.data);
+
+          switch (msg.type) {
+            case 'start_url':
+              setStatus('Downloading\u2026', 'running');
+              appendLog(`\u25B6  ${msg.url}`, 'info');
+              break;
+
+            case 'progress':
+              setProgress(msg.percent, msg.file, msg.speed, msg.eta);
+              break;
+
+            case 'finished_file':
+              appendLog(`\u2713  ${msg.file}`, 'success');
+              break;
+
+            case 'error':
+              errCount++;
+              appendLog(`\u2717  ${msg.message}`, 'error');
+              if (msg.url) appendLog(`    \u2514 ${msg.url}`, 'error');
+              if (msg.dependency === 'FFmpeg') {
+                showToast(
+                  'Missing: FFmpeg',
+                  'Install FFmpeg to convert MP3s or merge MP4s. See Console Logs.',
+                  'warning', 8000
+                );
+              } else if (msg.dependency === 'AtomicParsley') {
+                showToast(
+                  'Missing: AtomicParsley',
+                  'Required for thumbnail embedding. See Console Logs.',
+                  'warning', 8000
+                );
+              }
+              break;
+
+            case 'done':
+              es.close();
+              resolve({ errCount });
+              break;
+          }
+        };
+
+        es.onerror = () => {
+          es.close();
+          resolve({ errCount: -1 });
+        };
+      });
+
+      return {
+        promise,
+        close: () => { if (es) es.close(); }
+      };
+    }
+
+    async function startDownload() {
+      const urlsRaw = document.getElementById('urls').value.trim();
+      if (!urlsRaw) {
+        showToast('No URLs entered', 'Paste at least one YouTube link to continue.', 'error', 3500);
+        return;
+      }
+
+      const fmt           = document.querySelector('input[name="format"]:checked').value;
+      const embedMetadata = document.getElementById('meta-switch').checked;
+      const token         = generateToken();
+
+      setLoading(true);
+      showStatusArea();
+      clearLog();
+      showOpenFolder(false);
+      document.getElementById('progress-wrap').style.display = 'none';
+      document.getElementById('progress-fill').style.width   = '0%';
+      if (document.getElementById('disclosure').classList.contains('open')) toggleDisclosure();
+      setStatus('Connecting\u2026', 'running');
+
+      const sse = listenSSE(token);
+
+      try {
+        const res  = await fetch('/download', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({
+            urls:           urlsRaw,
+            format:         fmt,
+            token:          token,
+            embed_metadata: embedMetadata,
+          }),
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          sse.close();
+          showToast('Could not start', data.error || 'Server returned an error.', 'error');
+          setStatus('Failed to start', 'error');
+          setLoading(false);
+          return;
+        }
+
+        appendLog(
+          `Queued ${data.count} URL(s) \u00B7 ${data.format.toUpperCase()}` +
+          (data.embed_metadata ? ' + metadata' : ''),
+          'info'
+        );
+
+      } catch (err) {
+        sse.close();
+        showToast('Network error', err.message || 'Could not reach the local server.', 'error');
+        setStatus('Network error', 'error');
+        setLoading(false);
+        return;
+      }
+
+      const { errCount } = await sse.promise;
+      setLoading(false);
+
+      if (errCount === -1) {
+        showToast('Connection lost', 'Download may still be running in the background.', 'warning');
+        setStatus('Connection lost', 'error');
+
+      } else if (errCount === 0) {
+        setStatus('All downloads complete', 'success');
+        document.getElementById('progress-fill').style.width = '100%';
+        showOpenFolder(true);
+        showToast('Download complete', 'Files saved to your Music folder.', 'success');
+
+      } else {
+        const noun = errCount === 1 ? 'error' : 'errors';
+        setStatus(`Finished with ${errCount} ${noun}`, 'error');
+        document.getElementById('progress-fill').style.width = '100%';
+        showOpenFolder(true);
+        showToast(`${errCount} ${noun} occurred`, 'Check Console Logs for more info.', 'warning');
+        if (!document.getElementById('disclosure').classList.contains('open')) toggleDisclosure();
+      }
+    }
+
+    async function openFolder() {
+      try {
+        const res = await fetch('/open-folder');
+        if (!res.ok) throw new Error();
+      } catch (_) {
+        showToast('Could not open folder', 'Navigate there manually.', 'error', 3000);
+      }
+    }
+  </script>
+</body>
+</html>
